@@ -1,21 +1,16 @@
 library('DESeq2')
 library('ggplot2')
-library("RColorBrewer")
 library('pheatmap')
-# library('vsn')
-library('VennDiagram')
 library('reshape2')
 library('stringr')
+library('openxlsx')
 
 
-setwd('/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/star/')
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
 
-# if (!requireNamespace("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
-# 
-# BiocManager::install("DESeq2")
-# BiocManager::install("ComplexHeatmap")
-# BiocManager::install("apeglm")
+BiocManager::install("DESeq2")
+install.packages("ggplot2")
 
 #### Section 1: Input Data  ####-------------------------
 
@@ -24,9 +19,7 @@ setwd('/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/star/')
 # match. Only the ones -----ending with .csv should be kept. 
 src_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/star/'
 out_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/deseq2/'
-# gff_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq/data/TriTrypDB-48_TbruceiTREU927.gff'
 metadata_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/metadata.xlsx'
-setwd(src_dir)
 
 # select the ouput files of STAR
 sample_files <- list.files( path=src_dir, pattern = "*ReadsPerGene.out.tab$", full.names = TRUE )
@@ -55,6 +48,9 @@ head(counts)
 ## define the sample name and the biological condition as extracted 
 ## from the meta data excel file
 coldata = read.xlsx(metadata_file)
+coldata$new_column = paste0(coldata$tissue, "_", coldata$Condition)
+coldata$new_column2 = paste0(coldata$tissue, "_", coldata$Condition, "_", coldata$Timepoint)
+
 coldata
 
 # ---- 1.3: create DESeq object with design ----
@@ -65,9 +61,11 @@ counts = counts[,-grep("MC", colnames(counts))]
 coldata = coldata[-grep("BS", coldata$sample_name),]
 coldata = coldata[-grep("MC", coldata$sample_name),]
 
+colnames(counts) == coldata$sample_name
+
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = coldata,
-                              design= ~ tissue)
+                              design=  ~ tissue)
 dds$condition = relevel(dds$tissue, ref = "ear")
 dds = DESeq(dds)
 
@@ -309,7 +307,7 @@ i = 0
 for (topGene in topGenes) {
   i = i+1
   data <- plotCounts(dds, gene=topGene, intgroup=c("condition"), returnData=TRUE)
-
+  
   p = ggplot(data, aes(x=condition, y=count, fill=condition))
   p = p + scale_y_log10() 
   p = p + geom_dotplot(binaxis="y", stackdir="center", dotsize = 2)
@@ -319,8 +317,8 @@ for (topGene in topGenes) {
   
   
   figure_list[[i]] = local({
-      print(p)  
-    })  
+    print(p)  
+  })  
 }
 
 source("http://peterhaschke.com/Code/multiplot.R") #load multiplot function
@@ -383,7 +381,7 @@ for (selectGene in selectGenes) {
   p = p + theme(plot.title = element_text(size=10))
   p = p + geom_text(aes(label=rownames(data)), hjust=-0.25, vjust=-0.10, size=4)
   
-
+  
   figure_file = paste0(figure_dir, gene_list, '.', selectGene, '.countplot.png')  
   ggsave(figure_file, plot=p)
   
