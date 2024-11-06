@@ -50,16 +50,20 @@ sample_names
 colnames(counts) = sample_names
 head(counts)
 
+## save the source counts data frame
+# counts_src = counts
 
 # ---- 1.2: create sampleTable ----
 ## define the sample name and the biological condition as extracted 
 ## from the meta data excel file
 coldata = read.xlsx(metadata_file)
+coldata$Timepoint = as.factor(coldata$Timepoint)
 coldata
 
 # ---- 1.3: create DESeq object with design ----
 
-## preprocessing the counts
+## preprocessing the counts. Remove the pure Tb samples
+## and only keep the mouse genes
 counts = counts[,-grep("BS", colnames(counts))]
 counts = counts[,-grep("MC", colnames(counts))]
 coldata = coldata[-grep("BS", coldata$sample_name),]
@@ -70,6 +74,24 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
                               design= ~ tissue)
 dds$condition = relevel(dds$tissue, ref = "ear")
 dds = DESeq(dds)
+
+
+## optional: select only the ear samples or the lymph
+## node samples
+counts = counts[,grep("^E", colnames(counts))]
+coldata = coldata[grep("^E", coldata$sample_name),]
+
+counts = counts[,grep("^L", colnames(counts))]
+coldata = coldata[grep("^L", coldata$sample_name),]
+
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = coldata,
+                              design= ~ Condition)
+
+# dds = dds[, -which(colnames(dds) == "E96I2")]
+dds$condition = relevel(dds$Condition, ref = "control")
+dds = DESeq(dds)
+
 
 # the following selection is done to reduce the number of genes
 # with a low expression level.  
@@ -151,7 +173,7 @@ sampleDists <- dist(t(assay(vsd)))
 # correlation plot shown as heatmap
 sampleDistMatrix <- as.matrix(sampleDists)
 rownames(sampleDistMatrix) <- paste(colnames(vsd))
-colnames(sampleDistMatrix) <- NULL
+colnames(sampleDistMatrix) <- paste(colnames(vsd))
 
 
 #colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
@@ -174,24 +196,34 @@ colnames(sampleDistMatrix)  = colnames(vsd)[-index_to_remove]
 sampleDists <- dist(t(assay(vsd)[,-index_to_remove]))
 
 
+## add annotation data
+coldata = coldata[-which(coldata$sample_name== "E96I2"),]
+annotation_data = coldata[, c('Condition', 'Timepoint')]
+annotation_data$Timepoint = as.factor(annotation_data$Timepoint)
+rownames(annotation_data) = colnames(sampleDistMatrix)
+
 p = pheatmap(sampleDistMatrix,
              clustering_distance_rows=sampleDists,
              clustering_distance_cols=sampleDists,
-             fontsize=12) #,
+             fontsize=12, 
+             annotation_row = annotation_data) #,
 #         col=colors)
 p
 
-# make a PCA plot with all 10 samples
+# make a PCA plot with all samples
 p = plotPCA(vsd, intgroup="condition")
+p = plotPCA(vsd, intgroup="Timepoint")
+
 # p = p + geom_point(size=10, alpha=0.50)
 p = p + theme_bw()
 p = p + theme(text = element_text(size = 18)) 
 p = p + geom_text(aes(label=colnames(vsd)), hjust=-0.25, vjust=-0.10, size=4)
-# p = p + coord_cartesian(xlim=c(-25,30))
+p = p + coord_cartesian(xlim=c(-20,20), ylim=c(-15,15))
 p
 
 png_file_pca = paste0(out_dir, 'PCA_replicates.png')
 ggsave(png_file_pca, p)
+
 
 
 # heatmap of count matrix - first do a selection of the genes
