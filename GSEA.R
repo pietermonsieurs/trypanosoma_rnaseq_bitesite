@@ -26,6 +26,7 @@ library(ggplot2)
 library(rrvgo)
 library(GOSemSim)
 library(ggVennDiagram)
+library(reshape2)
 
 #### 1. GSEA for time series approach ####
 tissue = 'ear'
@@ -454,7 +455,6 @@ for (time_point in time_points) {
   }
   
 }
-
 
 
 

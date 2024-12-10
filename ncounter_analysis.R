@@ -309,7 +309,7 @@ contrast_matrix_emma <- makeContrasts(g_4h_I-g_4h_NI,
                                      levels = design)
 fit_emma <- contrasts.fit(fit, contrast_matrix_emma)
 fit_emma <- eBayes(fit_emma)
-topTable(fit_emma, coef=2)
+topTable(fit_emma, coef=2, n=100)
 topTable(fit_emma, coef=1)
 
 ## volcano plots per comparison
@@ -394,7 +394,7 @@ wrap_plots(plot_list, ncol=2)
 
 #### 4. GSEA analysis ####
 
-# ---- 4.1 using publicly available databases ----
+# ---- ├ 4.1 using publicly available databases ----
 
 ## Extract gene symbols and convert to EntrezIDS
 
@@ -466,8 +466,95 @@ for (coeff in c(2,4,6,8)) {
 
   
   
-# ---- 4.2 using categories of Nanostring using hypergeometric distribution ----
+# ---- ├ 4.2 using categories of Nanostring using hypergeometric distribution ----
+
+# ---- ├ ├ 4.2.1 read in data and parse ----
+
+## pathway data
+class_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter/LBL-10835-01_Mouse-Host-Response-Gene-List.xlsx'
+sheet = 'Annotations'
+class_data_df = read.xlsx(class_file, sheet = sheet, colNames=TRUE, startRow=2)
+head(class_data_df) 
+
+class_data = melt(class_data_df, id.vars=c('Gene', 'Human.Gene', 'Cell.Type'))
+colnames(class_data) = c('Gene', 'Human_Gene', 'Cell_type', 'pathway', 'value')
+class_data = class_data[class_data$value == "+", ]
+dim(class_data)
+head(class_data)
+
+## get the counts of gene per pathway
+pathway_count = as.data.frame(table(class_data$pathway))
+colnames(pathway_count) = c('pathway', 'class_count')
+
+
+
+# ---- ├ ├ 4.2.2 run GSEA using phyper ----
+
+plot_data = as.data.frame(pathway_count$pathway)
+for (coeff in 1:8) {
+  condition = colnames(contrast_matrix)[coeff]
+  condition = gsub("g_", "", condition)
+  condition = gsub(" ", "", condition)
   
+  diff_expressed = topTable(fit2, coef=coeff, n=1000, p.value=0.05,lfc=0)
+  diff_expressed = diff_expressed[grep("Endogenous_", rownames(diff_expressed)),]
+  rownames(diff_expressed) = sapply(strsplit(rownames(diff_expressed), "_"), `[`, 2)
+  genes_diff = rownames(diff_expressed)
+  
+  class_data_sub = class_data[class_data$Gene %in% genes_diff,]
+  pathway_count_cond = as.data.frame(class_data_sub$pathway)
+  dim(pathway_count_cond)
+  
+  ## count the number of genes that are diff expressed in the ncounter
+  ## dataset and merge with the overall classes. Also add the total 
+  ## number of genes assigned to pathways and the number of genes
+  ## that are diff expressed
+  pathway_count_sub = as.data.frame(table(class_data_sub$pathway))
+  colnames(pathway_count_sub) = c('pathway', 'diff_count')
+  gsea_data = merge(pathway_count, pathway_count_sub, by="pathway")
+  
+  gsea_data$class_count_total = sum(gsea_data$class_count)
+  gsea_data$diff_count_total = sum(gsea_data$diff_count)
+  head(gsea_data)
+  
+  if (sum(gsea_data$diff_count) > 0) {
+    gsea_data$pval = 1-phyper(gsea_data$diff_count, 
+                              gsea_data$class_count,
+                              gsea_data$class_count_total-gsea_data$class_count, 
+                              gsea_data$diff_count_total)
+  }else{
+    gsea_data$pval = 1
+  }
+  
+  # print(gsea_data[gsea_data$pval < 0.05,])
+  plot_data = cbind.data.frame(plot_data, gsea_data$pval)
+
+}
+
+
+## make heatmap
+rownames(plot_data) = plot_data[,1]
+plot_data = plot_data[,-1]
+new_colnames = gsub(" - g_0h_I", "", colnames(contrast_matrix))
+colnames(plot_data) = new_colnames
+head(plot_data)
+
+plot_data_log10 = -log10(plot_data)
+breaks = seq(0,3,0.03)
+pheatmap(plot_data_log10,
+         cluster_cols = FALSE, 
+         cluster_rows = FALSE,
+         fontsize_row = 10, 
+         breaks = breaks)
+
+
+plot_data_log10_sign = plot_data_log10[rowSums(plot_data_log10 > -log10(0.05)) > 0,]
+breaks = seq(0,3,0.03)
+pheatmap(plot_data_log10_sign,
+         cluster_cols = FALSE, 
+         cluster_rows = FALSE,
+         fontsize_row = 12, 
+         breaks = breaks)
 
 ## To Do ##
 ## correlation between normalised values of the biological replicates
