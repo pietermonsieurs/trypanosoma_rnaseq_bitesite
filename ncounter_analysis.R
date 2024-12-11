@@ -7,62 +7,62 @@
 
 
 # Load the packages
-library(NanoStringQCPro)
-library(NanoStringDiff)
-library(limma)
-library(pheatmap)
-library(ggpubr)
-library(ggplot2)
-library(patchwork)
-library(openxlsx)
-library(org.Mm.eg.db)
-library(AnnotationDbi)
-library(clusterProfiler)
-library(EnhancedVolcano)
-
- 
-#### 1. input data and metadata ####
-
-# ---- ├ 1.1 parameter settings ----
-out_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/ncounter/'
-
-## check the meta data. In contrast to what the manual says, the data should
-## be stored in a tab-delimited file instead of a comma separated file, so 
-## use the .txt metadata and not the .csv version
-meta_data_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/'
-meta_data_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter_metadata.txt'
-meta_data_file_xlsx = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter_metadata.xlsx'
-meta_data = read.xlsx(meta_data_file_xlsx)
-head(meta_data)
-
-
-# ---- ├ 1.2. nanostring data -----
-
-## specity the rlf file, which is downloaded from the nanostring website
-## https://nanostring.com/products/ncounter-assays-panels/immunology/host-response/
-rlf_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter/NS_Mm_HostResponse_v1.0.rlf'
-
-rcc_directory <- "/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter/combined/"
-rcc_data <- newRccSet(rccFiles = dir(rcc_directory, full.names = TRUE),
-                      extraPdata = meta_data_file,
-                      rlf = rlf_file,
-                      blankLabel = "blank"
-                      )
-checkRccSet(rcc_data)
-
-## inspect the resulting data set
-str(max.level=2, example_rccSet)
-rcc_data@phenoData@data
-
-
-
-#### 2. normalisation and QC ####
-
-# ---- ├ 2.1 normaliation ----
-
-rcc_data_norm <- preprocRccSet(rccSet = rcc_data, 
-                               normMethod = "housekeeping",
-                               bgReference="negatives")
+  library(NanoStringQCPro)
+  library(NanoStringDiff)
+  library(limma)
+  library(pheatmap)
+  library(ggpubr)
+  library(ggplot2)
+  library(patchwork)
+  library(openxlsx)
+  library(org.Mm.eg.db)
+  library(AnnotationDbi)
+  library(clusterProfiler)
+  library(EnhancedVolcano)
+  
+   
+  #### 1. input data and metadata ####
+  
+  # ---- ├ 1.1 parameter settings ----
+  out_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/ncounter/'
+  
+  ## check the meta data. In contrast to what the manual says, the data should
+  ## be stored in a tab-delimited file instead of a comma separated file, so 
+  ## use the .txt metadata and not the .csv version
+  meta_data_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/'
+  meta_data_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter_metadata.txt'
+  meta_data_file_xlsx = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter_metadata.xlsx'
+  meta_data = read.xlsx(meta_data_file_xlsx)
+  head(meta_data)
+  
+  
+  # ---- ├ 1.2. nanostring data -----
+  
+  ## specity the rlf file, which is downloaded from the nanostring website
+  ## https://nanostring.com/products/ncounter-assays-panels/immunology/host-response/
+  rlf_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter/NS_Mm_HostResponse_v1.0.rlf'
+  
+  rcc_directory <- "/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/ncounter/combined/"
+  rcc_data <- newRccSet(rccFiles = dir(rcc_directory, full.names = TRUE),
+                        extraPdata = meta_data_file,
+                        rlf = rlf_file,
+                        blankLabel = "blank"
+                        )
+  checkRccSet(rcc_data)
+  
+  ## inspect the resulting data set
+  str(max.level=2, example_rccSet)
+  rcc_data@phenoData@data
+  
+  
+  
+  #### 2. normalisation and QC ####
+  
+  # ---- ├ 2.1 normaliation ----
+  
+  rcc_data_norm <- preprocRccSet(rccSet = rcc_data, 
+                                 normMethod = "housekeeping",
+                                 bgReference="negatives")
 
 
 # ---- ├ 2.2 QC function ----
