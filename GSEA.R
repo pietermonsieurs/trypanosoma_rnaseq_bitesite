@@ -27,6 +27,7 @@ library(rrvgo)
 library(GOSemSim)
 library(ggVennDiagram)
 library(reshape2)
+library(gridExtra)
 
 #### 1. GSEA for time series approach ####
 tissue = 'ear'
@@ -45,7 +46,7 @@ enriched_GO_plot_list = list()
 gsego_plot_list = list()
 
 GO_types = c('BP', 'MF', 'CC')
-# GO_type = 'ALL'
+GO_type = 'ALL'
 
 for (time_point in time_points) {
   print(time_point)
@@ -75,15 +76,24 @@ for (time_point in time_points) {
   #   print(GO_type)
     
     ## GO enrichment analysis
+    # go_enrich <- enrichGO(gene = entrez_ids,
+    #                       OrgDb = org.Mm.eg.db,
+    #                       ont = "ALL",  ## vary over BP, CC, or MF
+    #                       pAdjustMethod = "BH",
+    #                       pvalueCutoff = 0.05,
+    #                       qvalueCutoff = 0.2,
+    #                       readable = TRUE,
+    #                       minGSSize = 20)
+
     go_enrich <- enrichGO(gene = entrez_ids,
                           OrgDb = org.Mm.eg.db,
                           ont = "ALL",  ## vary over BP, CC, or MF
                           pAdjustMethod = "BH",
-                          pvalueCutoff = 0.05,
-                          qvalueCutoff = 0.2,
+                          pvalueCutoff = 1,
+                          qvalueCutoff = 1,
                           readable = TRUE,
-                          minGSSize = 20)
-
+                          minGSSize = 1)
+    
     # go_gse <- gseGO(gene = geneList,
     #                       OrgDb = org.Mm.eg.db,
     #                       ont = "ALL",  ## vary over BP, CC, or MF
@@ -102,10 +112,10 @@ for (time_point in time_points) {
     
     
     # Visualize GO enrichment results
-    go_plot_enriched = dotplot(go_enrich_simplified,
-            showCategory = 25,
-            font.size = 7,
-    )
+    # go_plot_enriched = dotplot(go_enrich_simplified,
+    #         showCategory = 25,
+    #         font.size = 7,
+    # )
     
     
     # go_plot_gse = dotplot(go_gse_simplified,
@@ -114,16 +124,16 @@ for (time_point in time_points) {
     # )
     
   
-    go_plot_file_enriched = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_enricheGO.png')
+    # go_plot_file_enriched = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_enricheGO.png')
     # go_plot_file_gse = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_gsego.png')
     
-    ggsave(go_plot_enriched, file = go_plot_file_enriched)
+    # ggsave(go_plot_enriched, file = go_plot_file_enriched)
     # ggsave(go_plot_gse, file = go_plot_file_gse)
     
     
     enriched_GO_list[[time_point]][[GO_type]] = go_enrich_simplified
     # gsego_list[[time_point]][[GO_type]] = go_gse_simplified
-    enriched_GO_plot_list[[time_point]][[GO_type]] = go_plot_enriched
+    # enriched_GO_plot_list[[time_point]][[GO_type]] = go_plot_enriched
     # gsego_plot_list[[time_point]][[GO_type]] = go_plot_gse
     
   }
@@ -144,7 +154,7 @@ for (GO_type in GO_types) {
 ## extract all the biological processes out of the GO output for the GO
 ## enrichment approach
 GO_type = 'BP'
-GO_type = 'ALL'
+# GO_type = 'ALL'
 GO_list_all = c()
 GO_list_all_desc = c()
 for (time_point in time_points) {
