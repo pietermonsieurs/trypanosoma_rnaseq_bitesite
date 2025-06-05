@@ -14,11 +14,14 @@ library(limma)
 
 # ----  ├ 1.1. input data ----
 tissue = 'ear'
-# tissue = 'lymphnode'
+tissue = 'lymphnode'
 src_dir = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/results/deseq2/'
 excel_file = paste0(src_dir, 'rnaseq_immune_response.',tissue,'.timeseries.xlsx')
+excel_file = paste0(src_dir, 'rnaseq_immune_response.',tissue,'.timeseries_noninfected.xlsx')
+
 deseq_data = read.xlsx(excel_file)
 head(deseq_data)
+
 
 ## interferon genes obtained from Eva - 24/11/2024
 inf_gene_file = '/Users/pmonsieurs/programming/trypanosoma_rnaseq_bitesite/data/data_eva_AllCellTypesFC3.txt'
@@ -27,6 +30,8 @@ inf_genes = read.csv(inf_gene_file, header=FALSE)
 colnames(inf_genes) = c('inf_gene')
 
 time_points = c('4h', '12h', '24h', '48h', '72h', '96h')
+time_points = c('4h', '12h', '24h', '96h')
+
 cutoff_fdr = 0.05
 cutoff_fc = 1
 
@@ -45,6 +50,7 @@ pheatmap(plot_data,
          cluster_cols = FALSE)
 
 ## plot only those data where there is a fold change > 1 or < -1
+plot_data_fc = plot_data
 plot_data_fc = plot_data[rowSums(abs(plot_data) > 2) > 0,]
 pheatmap(t(plot_data_fc),
          breaks = seq(-5,5, 0.10),

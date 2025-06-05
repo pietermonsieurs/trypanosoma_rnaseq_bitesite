@@ -4,14 +4,14 @@
 if (!requireNamespace("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
 }
-# BiocManager::install("clusterProfiler")
-## BiocManager::install("org.Hs.eg.db")  # For human data
-# BiocManager::install("org.Mm.eg.db")  # For mouse data 
-# BiocManager::install("AnnotationDbi")
-# BiocManager::install("enrichplot")  
-# if (!requireNamespace("rrvgo", quietly = TRUE)) {
-#   remotes::install_github("ssayols/rrvgo")
-# }
+BiocManager::install("clusterProfiler")
+# BiocManager::install("org.Hs.eg.db")  # For human data
+BiocManager::install("org.Mm.eg.db")  # For mouse data
+BiocManager::install("AnnotationDbi")
+BiocManager::install("enrichplot")
+if (!requireNamespace("rrvgo", quietly = TRUE)) {
+  remotes::install_github("ssayols/rrvgo")
+}
 if (!requireNamespace("ggVennDiagram", quietly = TRUE)) {
   install.packages("ggVennDiagram")
 }
@@ -84,19 +84,19 @@ for (time_point in time_points) {
                           readable = TRUE,
                           minGSSize = 20)
 
-    go_gse <- gseGO(gene = geneList,
-                          OrgDb = org.Mm.eg.db,
-                          ont = "ALL",  ## vary over BP, CC, or MF
-                          pAdjustMethod = "BH",
-                          pvalueCutoff = 0.05)
-    dim(go_gse)
+    # go_gse <- gseGO(gene = geneList,
+    #                       OrgDb = org.Mm.eg.db,
+    #                       ont = "ALL",  ## vary over BP, CC, or MF
+    #                       pAdjustMethod = "BH",
+    #                       pvalueCutoff = 0.05)
+    # dim(go_gse)
     
     ## filter the go_enrich output
     go_enrich_simplified <- simplify(go_enrich, cutoff = 0.5, by = "p.adjust", select_fun = min)
     dim(go_enrich_simplified)
   
-    go_gse_simplified <- simplify(go_gse, cutoff = 0.5, by = "p.adjust", select_fun = min)
-    dim(go_gse_simplified)
+    # go_gse_simplified <- simplify(go_gse, cutoff = 0.5, by = "p.adjust", select_fun = min)
+    # dim(go_gse_simplified)
     
       
     
@@ -108,23 +108,23 @@ for (time_point in time_points) {
     )
     
     
-    go_plot_gse = dotplot(go_gse_simplified,
-            showCategory = 25,
-            font.size = 10,
-    )
+    # go_plot_gse = dotplot(go_gse_simplified,
+    #         showCategory = 25,
+    #         font.size = 10,
+    # )
     
   
     go_plot_file_enriched = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_enricheGO.png')
-    go_plot_file_gse = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_gsego.png')
+    # go_plot_file_gse = paste0(src_dir, 'gsea/', 'time_series_', tissue, '_', time_point, '_', GO_type, '_gsego.png')
     
     ggsave(go_plot_enriched, file = go_plot_file_enriched)
-    ggsave(go_plot_gse, file = go_plot_file_gse)
+    # ggsave(go_plot_gse, file = go_plot_file_gse)
     
     
     enriched_GO_list[[time_point]][[GO_type]] = go_enrich_simplified
-    gsego_list[[time_point]][[GO_type]] = go_gse_simplified
+    # gsego_list[[time_point]][[GO_type]] = go_gse_simplified
     enriched_GO_plot_list[[time_point]][[GO_type]] = go_plot_enriched
-    gsego_plot_list[[time_point]][[GO_type]] = go_plot_gse
+    # gsego_plot_list[[time_point]][[GO_type]] = go_plot_gse
     
   }
   
@@ -259,29 +259,44 @@ pathway = "cytokine-mediated signaling pathway"
 pathway = "leukocyte degranulation"
 pathway = "wound healing"
 
-GO_id = GO_list_all_unique[grep(pathway, GO_list_all_desc_unique)]
+pathways = c("extracellular matrix",
+            "neutrophil migration",
+            "ERK1/2 cascade",
+            "response to interferon beta",
+            "myeloid leukocyte migration",
+            "defense response to virus",
+            "adaptive immune response",
+            "antigen processing and presentation")
 
-genes_all = c()
-for (time_point in time_points) {
-  enrich_id = which(gsego_list[[time_point]][[GO_type]]$ID == GO_id)
-  print(time_point)
-  if (length(enrich_id) > 0) {
-    print(enrich_id)
-    genes_cat = gsego_list[[time_point]][[GO_type]][enrich_id]$geneID
-    genes = strsplit(genes_cat, "/")[[1]]
-    genes_all = c(genes_all, genes)
+
+for (pathway in pathways) {
+
+  GO_id = GO_list_all_unique[grep(pathway, GO_list_all_desc_unique)]
+  
+  genes_all = c()
+  for (time_point in time_points) {
+    enrich_id = which(gsego_list[[time_point]][[GO_type]]$ID == GO_id)
+    print(time_point)
+    if (length(enrich_id) > 0) {
+      print(enrich_id)
+      genes_cat = gsego_list[[time_point]][[GO_type]][enrich_id]$geneID
+      genes = strsplit(genes_cat, "/")[[1]]
+      genes_all = c(genes_all, genes)
+    }
   }
+  
+  genes_all_unique = unique(genes_all)
+  plot_data = deseq_data[match(genes_all_unique, deseq_data$external_gene_name),]
+  plot_data = plot_data[,grep("fc", colnames(plot_data))]
+  rownames(plot_data) = genes_all_unique
+  
+  p_heat = pheatmap(plot_data,
+           breaks = seq(0,5, 0.05),
+           fontsize_row = 8,
+           cluster_cols = FALSE)
+
+  png_file = paste0(out_dir)
 }
-
-genes_all_unique = unique(genes_all)
-plot_data = deseq_data[match(genes_all_unique, deseq_data$external_gene_name),]
-plot_data = plot_data[,grep("fc", colnames(plot_data))]
-rownames(plot_data) = genes_all_unique
-pheatmap(plot_data,
-         breaks = seq(0,5, 0.05),
-         fontsize_row = 8,
-         cluster_cols = FALSE)
-
 
 # ---- > REVIGO < -----
 GO_types = c('BP')
